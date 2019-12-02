@@ -1,0 +1,16 @@
+{
+  "object": {
+    "pins": [
+      {
+        "package": "FootlessParser",
+        "repositoryURL": "https://github.com/peterkovacs/FootlessParser.git",
+        "state": {
+          "branch": "inout-remainder",
+          "revision": "1997256ca6db85760feb3a3811826ba7b4d52c42",
+          "version": null
+        }
+      }
+    ]
+  },
+  "version": 1
+}
