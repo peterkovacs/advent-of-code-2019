@@ -5,15 +5,7 @@ extension Array where Element: Equatable {
     assert(indices.contains(index))
 
     let item = self[index]
-    var index = self.index(after: index)
-    var length = 1
-
-    while index != self.endIndex && self[index] == item {
-      length += 1
-      index = self.index(after: index)
-    }
-
-    return length
+    return self[index...].prefix { $0 == item }.count
   }
 }
 
@@ -21,14 +13,11 @@ extension Int {
   var digits: [Int] {
     assert(self > 0)
 
-    var i = self
-    var result = [Int]()
-    while i > 0 {
-      result.insert(i % 10, at: 0)
-      i /= 10
-    }
-
-    return result
+    return Array(sequence(state: self) { (i: inout Int) in
+      guard i > 0 else { return nil }
+      defer { i /= 10 }
+      return i % 10
+    }.reversed())
   }
 
   var partOne: Bool {
@@ -49,10 +38,12 @@ extension Int {
 
     var i = digits.startIndex
     while i < digits.endIndex - 1 {
-      if digits[i] > digits[i + 1] { return false }
       let lengthOfRun = digits.lengthOfRun(atIndex: i)
       if lengthOfRun == 2 { hasPair = true }
-      i += Swift.max(1, lengthOfRun - 1)
+      i += lengthOfRun - 1
+
+      if i < digits.endIndex - 1, digits[i] > digits[i + 1] { return false }
+      i += 1
     }
 
     return hasPair
