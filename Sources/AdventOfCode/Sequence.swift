@@ -44,7 +44,7 @@ extension Sequence where Element: Numeric {
 }
 
 public extension Array {
-  public func appending(_ element: Element) -> Array<Element> {
+  func appending(_ element: Element) -> Array<Element> {
     var result = self
     result.append(element)
     return result
@@ -168,7 +168,7 @@ extension Sequence {
 }
 
 public extension Sequence {
-  public func permutations() -> PermutationIterator<Self> {
+  func permutations() -> PermutationIterator<Self> {
     return PermutationIterator(elements: self)
   }
 }

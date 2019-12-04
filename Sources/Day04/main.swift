@@ -10,16 +10,6 @@ extension Array where Element: Equatable {
 }
 
 extension Int {
-  var digits: [Int] {
-    assert(self > 0)
-
-    return Array(sequence(state: self) { i in
-      guard i > 0 else { return nil }
-      defer { i /= 10 }
-      return i % 10
-    }.reversed())
-  }
-
   var partOne: Bool {
     let digits = self.digits
     return zip(digits, digits[1...]).allSatisfy { a, b in b >= a } &&
