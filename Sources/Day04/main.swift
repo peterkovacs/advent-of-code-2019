@@ -13,7 +13,7 @@ extension Int {
   var digits: [Int] {
     assert(self > 0)
 
-    return Array(sequence(state: self) { (i: inout Int) in
+    return Array(sequence(state: self) { i in
       guard i > 0 else { return nil }
       defer { i /= 10 }
       return i % 10
@@ -22,25 +22,22 @@ extension Int {
 
   var partOne: Bool {
     let digits = self.digits
-    return zip(digits[...], digits[1...]).allSatisfy { a, b in a >= b } &&
-           zip(digits[...], digits[1...]).contains { a, b in a == b }
+    return zip(digits, digits[1...]).allSatisfy { a, b in b >= a } &&
+           zip(digits, digits[1...]).contains { a, b in a == b }
   }
 
   var partTwo: Bool {
     let digits = self.digits
-    var hasPair = false
+    guard zip(digits, digits[1...]).allSatisfy({ a, b in b >= a }) else { return false }
 
     var i = digits.startIndex
     while i < digits.endIndex - 1 {
       let lengthOfRun = digits.lengthOfRun(atIndex: i)
-      if lengthOfRun == 2 { hasPair = true }
-      i += lengthOfRun - 1
-
-      if i < digits.endIndex - 1, digits[i] > digits[i + 1] { return false }
-      i += 1
+      if lengthOfRun == 2 { return true }
+      i += lengthOfRun
     }
 
-    return hasPair
+    return false
   }
 }
 
