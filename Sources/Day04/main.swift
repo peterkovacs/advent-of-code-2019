@@ -22,14 +22,8 @@ extension Int {
 
   var partOne: Bool {
     let digits = self.digits
-    var hasPair = false
-
-    for i in 0..<(digits.count-1) {
-      if digits[i] > digits[i + 1] { return false }
-      if digits[i] == digits[i + 1] { hasPair = true }
-    }
-
-    return hasPair
+    return zip(digits[...], digits[1...]).allSatisfy { a, b in a >= b } &&
+           zip(digits[...], digits[1...]).contains { a, b in a == b }
   }
 
   var partTwo: Bool {
