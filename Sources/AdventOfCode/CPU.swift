@@ -1,37 +1,28 @@
 import Foundation
 
 public struct CPU {
+  public enum State {
+    case running
+    case blocked
+    case halted
+  }
+
   private var pc = 0
   public var program: [Int]
 
-  public init(program: [Int]) {
+  public var input: [Int] = []
+  public var output: [Int] = []
+  public var state: State = .running
+
+  public init(program: [Int], phase: Int? = nil) {
     self.program = program
+    if let phase = phase { input.append(phase) }
   }
 
-  public mutating func exec() {
-    while true {
-      switch program[pc] {
-      case 1:
-        let store = program[pc + 3]
-        let a = program[pc + 1]
-        let b = program[pc + 2]
-        program[store] = program[a] + program[b]
-        pc += 4
-      case 2:
-        let store = program[pc + 3]
-        let a = program[pc + 1]
-        let b = program[pc + 2]
-        program[store] = program[a] * program[b]
-        pc += 4
-      case 99:
-        return
-      default:
-        fatalError()
-      }
-    }
-  }
+  public var isBlocked: Bool { state == .blocked }
+  public var isHalted: Bool { state == .halted }
 
-  public mutating func exec(input: () -> Int) {
+  public mutating func exec(output: ((Int) -> ())? = nil) {
     while true {
       switch decode( op: program[pc] ) {
       case 1:
@@ -41,10 +32,18 @@ public struct CPU {
         store( op: program[pc], offset: 3, value: value(op: program[pc], offset: 1) * value(op: program[pc], offset: 2))
         pc += 4
       case 3:
-        store( op: program[pc], offset: 1, value: input() )
+        if input.isEmpty {
+          state = .blocked
+          return 
+        }
+        store( op: program[pc], offset: 1, value: input.removeFirst() )
         pc += 2
       case 4:
-        print(value(op: program[pc], offset: 1))
+        let val = value(op: program[pc], offset: 1)
+
+        if let output = output { output(val) } 
+        else { self.output.append(val) }
+
         pc += 2
 
       case 5:
@@ -72,7 +71,8 @@ public struct CPU {
         pc += 4
 
       case 99:
-        return
+        state = .halted
+        return 
       default:
         fatalError("illegal instruction @ \(pc), \(program[pc]) \(decode(op: program[pc]))")
       }
