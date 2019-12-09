@@ -13,6 +13,7 @@ public struct CPU {
   public var input: [Int] = []
   public var output: [Int] = []
   public var state: State = .running
+  public var base: Int = 0
 
   public init(program: [Int], phase: Int? = nil) {
     self.program = program
@@ -70,6 +71,11 @@ public struct CPU {
         store(op: program[pc], offset: 3, value: val)
         pc += 4
 
+      case 9:
+        let val = value(op: program[pc], offset: 1)
+        base += val
+        pc += 2
+
       case 99:
         state = .halted
         return 
@@ -81,20 +87,49 @@ public struct CPU {
 
   func decode(op: Int) -> Int { op % 100 }
 
-  func value(op: Int, offset: Int) -> Int {
+  mutating func value(op: Int, offset: Int) -> Int {
     // offset is 1 (-> X00), 2 (-> X000), 3 (-> X0000)
-    if (op / (10 * Int(pow(10.0, Double(offset)))) % 10) == 1 {
-      // immediate mode.
-      return program[pc + offset]
-    } else {
+    switch (op / (10 * Int(pow(10.0, Double(offset)))) % 10) {
+    case 0:
       // position mode
+      let index = program[pc + offset]
+      reserve(size: index)
       return program[ program[ pc + offset] ]
+    case 1:
+      // immediate mode.
+      let index = pc + offset
+      reserve(size: index)
+      return program[pc + offset]
+    case 2:
+      // relative mode
+      let index = base + program[pc + offset]
+      reserve(size: index)
+      return program[index]
+    default:
+      fatalError("unknown mode")
+    }
+  }
+
+  mutating func reserve(size: Int) {
+    while program.count < size + 1 {
+      program.append(0)
     }
   }
 
   mutating func store(op: Int, offset: Int, value: Int) {
-    guard (op / (10 * Int(pow(10.0, Double(offset)))) % 10) == 0 else { fatalError("store to immediate mode?") }
-
-    program[ program[pc + offset] ] = value
+    switch (op / (10 * Int(pow(10.0, Double(offset)))) % 10) {
+    case 0:
+      let index = program[pc + offset] 
+      reserve(size: index)
+      program[index] = value
+    case 1:
+      fatalError("store to immediate mode?")
+    case 2:
+      let index = base + program[pc + offset]
+      reserve(size: index)
+      program[index] = value
+    default:
+      fatalError("unknown mode")
+    }
   }
 }
