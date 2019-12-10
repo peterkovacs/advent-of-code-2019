@@ -1,6 +1,18 @@
 import Foundation
 import CoreGraphics
 
+public func gcd<T: FixedWidthInteger & SignedNumeric>(_ m: T, _ n: T) -> T {
+    guard m >= 0, n >= 0 else { return gcd(abs(m), abs(n)) }
+    guard m >= n else { return gcd(n, m) }
+
+    let r = m % n
+    if r != 0 {
+        return gcd(n, r)
+    } else {
+        return n
+    }
+}
+
 public struct Coordinate {
   public let x, y: Int
   public typealias Direction = KeyPath<Coordinate, Coordinate>
@@ -37,6 +49,33 @@ public struct Coordinate {
     return [ left, right, up, down, left.up, right.up, left.down, right.down ].filter { $0.isValid(x: limitedBy, y: limitedBy) }
   }
 
+  public func line(to: Coordinate, limitedBy count: Int) -> [Coordinate] {
+    guard self != to else { return [] }
+
+    let direction = to - self
+    if direction.x == 0 {
+      // vertical line
+      if direction.y < 0 { 
+        return stride(from: self.y, through: 0, by: -1).dropFirst().map { Coordinate(x: self.x, y: $0) }
+      } else { 
+        return stride(from: self.y, to: count, by: 1).dropFirst().map { Coordinate(x: self.x, y: $0) }
+      }
+    } else if direction.y == 0 {
+      // horizontal line
+      if direction.x < 0 { 
+        return stride(from: self.x, through: 0, by: -1).dropFirst().map { Coordinate(x: $0, y: self.y) } 
+      } else { 
+        return stride(from: self.x, to: count, by: 1).dropFirst().map { Coordinate(x: $0, y: self.y) } 
+      }
+    } else {
+      let direction = direction / gcd(direction.x, direction.y)
+      return zip( stride(from: self.x, to: direction.x < 0 ? -1 : count, by: direction.x), 
+                  stride(from: self.y, to: direction.y < 0 ? -1 : count, by: direction.y ) )
+             .dropFirst()
+             .map { Coordinate(x: $0.0, y: $0.1) }
+    }
+  }
+ 
   public func direction(to: Coordinate) -> Direction {
     if abs(self.x - to.x) > abs(self.y - to.y) {
       return self.x > to.x ? \Coordinate.left : \Coordinate.right
@@ -49,6 +88,8 @@ public struct Coordinate {
     self.x = x
     self.y = y
   }
+
+  public static var zero: Coordinate = Coordinate(x: 0, y: 0)
 }
 
 public extension Coordinate {
@@ -254,4 +295,18 @@ extension Coordinate: Equatable {
   public static func ==(lhs: Coordinate, rhs: Coordinate) -> Bool {
     return lhs.y == rhs.y && lhs.x == rhs.x
   }
+}
+
+public func -(lhs: Coordinate, rhs: Coordinate) -> Coordinate { 
+  return Coordinate(x: lhs.x - rhs.x, y: lhs.y - rhs.y)
+}
+
+public func +(lhs: Coordinate, rhs: Coordinate) -> Coordinate {
+  return Coordinate(x: lhs.x + rhs.x, y: lhs.y + rhs.y)
+}
+
+public func /(lhs: Coordinate, rhs: Int) -> Coordinate {
+  guard lhs.x.isMultiple(of: rhs), lhs.y.isMultiple(of: rhs) else { fatalError() }
+
+  return Coordinate(x: lhs.x / rhs, y: lhs.y / rhs)
 }
