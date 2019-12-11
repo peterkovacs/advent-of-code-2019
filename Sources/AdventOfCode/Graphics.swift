@@ -15,6 +15,11 @@ public struct Pixel {
   }
 }
 
+public extension Pixel {
+  static var white: Pixel { Pixel.init(a: 255, r: 255, g: 255, b: 255) }
+  static var black: Pixel { Pixel.init(a: 255, r: 0, g: 0, b: 0) }
+}
+
 public extension CGRect {
   var area: CGFloat {
     return width * height

@@ -1,4 +1,6 @@
 import AdventOfCode
+import CoreGraphics
+import Foundation
 
 enum Color {
   case unpainted
@@ -56,3 +58,18 @@ var grid2 = Grid<Color>(Array(repeating: .unpainted, count: 120 * 120))!
 grid2[start] = .white
 var part2 = CPU(program: program)
 print(part2.paint(grid: &grid2, position: start))
+
+let scaled = Grid(grid2, transform: CGAffineTransform(scaleX: 0.1, y: 0.1).translatedBy(x: -5, y: -5))!
+let context = CGContext.square(size: 1200)
+iterate( 1..<1200, and: 1..<1200 ).forEach { x,y in 
+  switch scaled[x: x, y: y] {
+  case .white:
+    context[x: x, y: y] = .white
+  case .black:
+    context[x: x, y: y] = .black
+  case .unpainted:
+    break
+  }
+}
+
+context.save(to: URL(fileURLWithPath: "day11.png"))
