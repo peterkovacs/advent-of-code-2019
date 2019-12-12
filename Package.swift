@@ -1,7 +1,10 @@
-// swift-tools-version:4.2
+// swift-tools-version:5.1
 import PackageDescription
 
 let package = Package(name: "AdventOfCode2019",
+                      platforms: [
+                        .macOS(.v10_14)
+                      ],
                       products: [
                         .library(name: "AdventOfCode", targets: [ "AdventOfCode" ]),
                         .executable(name: "Day01", targets: [ "Day01" ]),
