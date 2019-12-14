@@ -1,4 +1,6 @@
 import AdventOfCode
+import CoreGraphics
+import Foundation
 
 var program = readLine(strippingNewline: true)!.split(separator: ",").map{ Int($0)! }
 var part1 = CPU(program: program)
@@ -48,11 +50,32 @@ extension Game.Element: CustomStringConvertible {
     case .ball: return "•"
     }
   }
+
+  var pixel: Pixel {
+    switch self {
+      case .empty: return Pixel(a: 0, r: 0, g: 0, b: 0)
+      case .wall: return Pixel(a: 255, r: 255, g: 255, b: 255)
+      case .block: return Pixel(a: 255, r: 255, g: 128, b: 128)
+      case .paddle: return Pixel(a: 255, r: 128, g: 255, b: 128)
+      case .ball: return Pixel(a: 255, r: 128, g: 255, b: 255)
+    }
+  }
+}
+
+extension Grid where T == Game.Element {
+  func draw(context: CGContext) {
+    let scaled = Grid(self, transform: CGAffineTransform(scaleX: 0.1, y: 0.1).translatedBy(x: -5, y: -5))!
+
+    iterate( 1..<(10*count), and: 1..<(10*count) ).forEach { x, y in 
+      context[x: x, y: y] = scaled[x: x, y: y].pixel
+    }
+  }
 }
 
 program[0] = 2
 var part2 = CPU(program: program)
 var game = Game()
+let animator = Animator(width: 464, height: 464, frameRate: 1.0 / 30, url: URL(fileURLWithPath: "day13.mov"))
 
 while !part2.isHalted {
   part2.input.append( (game.ball.x - game.paddle.x).signum() )
@@ -60,7 +83,9 @@ while !part2.isHalted {
   while !part2.output.isEmpty {
     game.exec(output: &part2.output)
   }
+  animator.draw(callback: game.grid.draw)
   // print(game.grid)
 }
+animator.complete()
 
 print("part2", game.score)
