@@ -28,12 +28,16 @@ extension Reaction {
     if let (canMake, reagents) = schedule[reactant.symbol] {
       let need = reactant.quantity - alreadyHave
       let multiplier = (need / canMake) + (need % canMake).signum()
-      byproducts[reactant.symbol] = 0
+
+      let tmp = byproducts
 
       if reagents.allSatisfy({ react(reactant: $0 * multiplier) }) {
         // Can create reagents, we're left with some remainder.
         byproducts[reactant.symbol] = (canMake * multiplier) - need
         return true
+      } else {
+        byproducts = tmp
+        return false
       }
     }
 
@@ -53,5 +57,10 @@ if reaction.react(reactant: Reactant(quantity: 1, symbol: "FUEL")) {
 }
 
 var count = 1
+while( reaction.react(reactant: Reactant(quantity: 100000, symbol: "FUEL")) ) { count += 100000 }
+while( reaction.react(reactant: Reactant(quantity: 10000, symbol: "FUEL")) ) { count += 10000 }
+while( reaction.react(reactant: Reactant(quantity: 1000, symbol: "FUEL")) ) { count += 1000 }
+while( reaction.react(reactant: Reactant(quantity: 100, symbol: "FUEL")) ) { count += 100 }
+while( reaction.react(reactant: Reactant(quantity: 10, symbol: "FUEL")) ) { count += 10 }
 while( reaction.react(reactant: Reactant(quantity: 1, symbol: "FUEL")) ) { count += 1 }
 print("part2", count)
