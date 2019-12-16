@@ -115,8 +115,13 @@ extension Grid: Sequence {
     var coordinate: Coordinate
 
     init(grid: Grid) {
-      self.startIndex = Grid.transform(x: grid.startIndex.x, y: grid.startIndex.y, with: grid.transform.inverted())
-      self.endIndex = Grid.transform(x: grid.endIndex.x, y: grid.endIndex.y, with: grid.transform.inverted())
+      self.startIndex = Grid.transform(x: grid.startIndex.x,
+                                       y: grid.startIndex.y,
+                                       with: grid.transform.inverted())
+      self.endIndex = Grid.transform(x: grid.endIndex.x-1, 
+                                     y: grid.endIndex.y-1,
+                                     with: grid.transform.inverted()) 
+                      + Coordinate(x: 1, y: 1)
       self.coordinate = self.startIndex
     }
 
