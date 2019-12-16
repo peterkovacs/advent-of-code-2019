@@ -47,7 +47,7 @@ extension CPU {
       grid[position] = color == 0 ? .black : .white
 
       if let animator = animator {
-        animator.draw { grid.draw(context: $0, scale: 4) { $0.pixel } }
+        animator.draw { grid.draw(context: $0, scale: 10) { $0.pixel } }
       }
 
       if turn == 0 {
@@ -71,28 +71,30 @@ extension Grid {
     context.setFillColor(backgroundColor)
     context.fill(backgroundBounds)
 
-    let scaled = Grid(self, transform: CGAffineTransform(scaleX: 1/CGFloat(scale), y: 1/CGFloat(scale)).translatedBy(x: -(CGFloat(scale)/2), y: -CGFloat(scale)/2))!
+    let scaled = Grid(rectangle: self, width: width, height: height, transform: CGAffineTransform(scaleX: 1/CGFloat(scale), y: 1/CGFloat(scale)).translatedBy(x: -(CGFloat(scale)/2), y: -CGFloat(scale)/2))
     
-    iterate( 1..<(scale*count), and: 1..<(scale*count) ).forEach { x,y in 
+    iterate( 1..<(scale*width), and: 1..<(scale*height) ).forEach { x,y in 
       context[x: x, y: y] = withPixel(scaled[x: x, y: y])
     }
   }
 }
 
 let program = readLine(strippingNewline: true)!.split(separator: ",").map{ Int($0)! }
-var grid1 = Grid<Color>(Array(repeating: .unpainted, count: 120 * 120))!
+var grid1 = Grid<Color>.unbounded(default: .unpainted)
 var part1 = CPU(program: program)
-let start = Coordinate(x: 30, y: 60)
+let start = Coordinate.zero
 print("part1", part1.paint(grid: &grid1, position: start).filter { $0 != .unpainted }.count )
 
-var grid2 = Grid<Color>(Array(repeating: .unpainted, count: 120 * 120))!
+var grid2 = Grid<Color>.unbounded(default: .unpainted)
 grid2[start] = .white
 var part2 = CPU(program: program)
-let animator = Animator.init(width: 480, height: 480, frameRate: 1.0 / 30, url: URL(fileURLWithPath: "day11.mpeg"))
+let animator = Animator.init(width: 480, height: 320, frameRate: 1.0 / 30, url: URL(fileURLWithPath: "day11.mov")) as Animator?
+// let animator = nil as Animator?
 print(part2.paint(grid: &grid2, position: start, animator: animator))
-animator.complete()
+// print(grid2.width, grid2.height)
+animator?.complete()
 
-let context = CGContext.square(size: 120 * 4)
+let context = CGContext.create(size: CGSize(width: grid2.width * 4, height: grid2.height * 4))
 grid2.draw(context: context, scale: 4) { 
   switch $0 {
   case .white:

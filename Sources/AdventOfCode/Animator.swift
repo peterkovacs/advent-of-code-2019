@@ -54,7 +54,7 @@ public class Animator {
         writerInput = AVAssetWriterInput(mediaType: .video, outputSettings: videoSettings)
 
         let sourceAttributes: [String:Any] = [
-            String(kCVPixelBufferPixelFormatTypeKey): NSNumber(value: kCVPixelFormatType_32BGRA)
+            String(kCVPixelBufferPixelFormatTypeKey): NSNumber(value: kCVPixelFormatType_32ARGB)
         ]
 
         writerAdaptor = AVAssetWriterInputPixelBufferAdaptor(assetWriterInput: writerInput, sourcePixelBufferAttributes: sourceAttributes)

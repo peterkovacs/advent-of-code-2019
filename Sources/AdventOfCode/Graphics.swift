@@ -20,6 +20,10 @@ public extension Pixel {
   static var black: Pixel { Pixel.init(a: 255, r: 0, g: 0, b: 0) }
 }
 
+public protocol Drawable {
+  var pixel: Pixel { get }
+}
+
 public extension CGRect {
   var area: CGFloat {
     return width * height
@@ -121,5 +125,16 @@ public struct PixelIterator: IteratorProtocol {
 extension CGContext: Sequence {
   public func makeIterator() -> PixelIterator {
     return PixelIterator(x: 0, y: 0, context: self)
+  }
+}
+
+public extension Grid where Element: Drawable {
+  @discardableResult
+  func save(scale: CGFloat, to: URL) -> Bool {
+    let scaled = Grid(rectangle: self, width: width, height: height, transform: scale == 1.0 ? .identity : CGAffineTransform(scaleX: 1.0/scale, y: 1.0/scale).translatedBy(x: -scale/2, y: -scale/2))
+    let context = CGContext.create(size: CGSize(width: CGFloat(width) * scale, height: CGFloat(height) * scale))
+    scaled.indices.forEach { context[x: $0.x, y: $0.y] = scaled[$0].pixel }
+    
+    return context.save(to: to)
   }
 }

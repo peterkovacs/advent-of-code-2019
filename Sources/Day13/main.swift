@@ -10,7 +10,7 @@ print("part1", stride(from: part1.output.startIndex + 2, to: part1.output.endInd
 
 struct Game {
   enum Element: Int { case empty, wall, block, paddle, ball }
-  var grid: Grid<Element> = Grid(Array(repeating: .empty, count: 45 * 45))!
+  var grid: Grid<Element> = Grid.unbounded(default: .empty)
 
   var ball: Coordinate = .zero
   var paddle: Coordinate = .zero
@@ -64,10 +64,10 @@ extension Game.Element: CustomStringConvertible {
 
 extension Grid where T == Game.Element {
   func draw(context: CGContext) {
-    let scaled = Grid(self, transform: CGAffineTransform(scaleX: 0.1, y: 0.1).translatedBy(x: -5, y: -5))!
+    let scaled = Grid(rectangle: self, width: width, height: height, transform: CGAffineTransform(scaleX: 0.1, y: 0.1).translatedBy(x: -5, y: -5))
 
-    iterate( 1..<(10*count), and: 1..<(10*count) ).forEach { x, y in 
-      context[x: x, y: y] = scaled[x: x, y: y].pixel
+    scaled.indices.forEach { 
+      context[x: $0.x, y: $0.y] = scaled[$0].pixel 
     }
   }
 }
@@ -75,8 +75,7 @@ extension Grid where T == Game.Element {
 program[0] = 2
 var part2 = CPU(program: program)
 var game = Game()
-let animator = Animator(width: 464, height: 464, frameRate: 1.0 / 30, url: URL(fileURLWithPath: "day13.mov"))
-
+let animator = Animator(width: 480, height: 208, frameRate: 1.0 / 30, url: URL(fileURLWithPath: "day13.mov"))
 while !part2.isHalted {
   part2.input.append( (game.ball.x - game.paddle.x).signum() )
   part2.exec()
@@ -84,7 +83,6 @@ while !part2.isHalted {
     game.exec(output: &part2.output)
   }
   animator.draw(callback: game.grid.draw)
-  // print(game.grid)
 }
 animator.complete()
 

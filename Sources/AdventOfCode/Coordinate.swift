@@ -52,8 +52,8 @@ public extension Coordinate {
     }
   }
 
-  func neighbors8( limitedBy: Int ) -> [Coordinate] {
-    return [ left, right, up, down, left.up, right.up, left.down, right.down ].filter { $0.isValid(x: limitedBy, y: limitedBy) }
+  func neighbors8( limitedBy x: Int, and y: Int ) -> [Coordinate] {
+    return [ left, right, up, down, left.up, right.up, left.down, right.down ].filter { $0.isValid(x: x, y: y) }
   }
 
   func line(to: Coordinate, limitedBy count: Int) -> [Coordinate] {
