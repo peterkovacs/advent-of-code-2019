@@ -270,3 +270,12 @@ public struct BiDiIterator<T: BidirectionalCollection, U: BidirectionalCollectio
 public func iterate<T: BidirectionalCollection, U: BidirectionalCollection>(_ x: T, and y: U ) -> BiDiIterator<T, U> {
   return BiDiIterator(x, y)
 }
+
+public func zip<S1: Sequence, S2: Sequence, S3: Sequence>(_ s1: S1, _ s2: S2, _ s3: S3) -> UnfoldSequence<(S1.Element,S2.Element,S3.Element),Zip2Sequence<S1,Zip2Sequence<S2,S3>>.Iterator> {
+  let s = zip( s1, zip( s2, s3 ) )
+  let seq = sequence( state: s.makeIterator() ) { (i: inout Zip2Sequence<S1,Zip2Sequence<S2,S3>>.Iterator) -> (S1.Element, S2.Element, S3.Element)? in
+    guard let d = i.next() else { return nil }
+    return (d.0, d.1.0, d.1.1)
+  }
+  return seq
+}

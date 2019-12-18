@@ -104,7 +104,44 @@ public struct Grid<T> {
 
   private func transform(x: Int, y: Int) -> Coordinate {
     return Self.transform(x: x, y: y, with: transform)
+  }
 
+  public func shortestPath(from start: Coordinate, to destination: Coordinate, isValid: (Coordinate, Element)->Bool) -> [Coordinate] {
+    var queue = [(0, start)]
+    var visited = Set<Coordinate>()
+    var parents = [Coordinate: Coordinate]()
+    var result = [Coordinate]()
+    var best = Int.max
+
+    func path(for destination: Coordinate) -> [Coordinate] {
+      var result = [Coordinate]()
+      var next = destination
+
+      while next != start {
+        result.append(next)
+        guard let parent = parents[next] else { fatalError() }
+        next = parent
+      }
+
+      return result
+    }
+
+    while !queue.isEmpty {
+      let (distance, i) = queue.removeFirst()
+      for j in i.neighbors(limitedBy: width, and: height) where !visited.contains(j) && isValid(j, self[j]) {
+        visited.insert(j)
+        parents[j] = i
+
+        if j == destination {
+          return path(for: destination)
+        }
+
+        let index = queue.firstIndex(where: { $0.1.manhattan(to: destination) > j.manhattan(to: destination)})
+        queue.insert((distance + 1, j), at: index ?? queue.endIndex)
+      }
+    }
+
+    return []
   }
 }
 

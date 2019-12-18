@@ -91,6 +91,10 @@ public extension Coordinate {
     }
   }
 
+  func manhattan(to: Coordinate) -> Int {
+    abs(self.x - to.x) + abs(self.y - to.y)
+  }
+
   static var zero: Coordinate = Coordinate(x: 0, y: 0)
 }
 
@@ -125,10 +129,6 @@ public extension Coordinate {
 }
 
 extension Coordinate: Hashable {
-  public func hash(into hasher: inout Hasher) {
-    hasher.combine(x << 32)
-    hasher.combine(y & 0xffffffff)
-  } 
 }
 
 extension Coordinate: CustomStringConvertible {
