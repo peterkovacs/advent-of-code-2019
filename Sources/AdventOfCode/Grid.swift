@@ -38,7 +38,7 @@ public struct Grid<T> {
 
   public init<S: Sequence>(rectangle input: S, width: Int, height: Int, transform: CGAffineTransform = .identity) where S.Element == Element {
     var array = Array(input)
-    precondition(array.count == width * height)
+    precondition(array.count == width * height, "\(array.count) is not \(width)*\(height)")
 
     self.transform = transform
     self.startIndex = Coordinate(x: 0, y: 0)
@@ -106,7 +106,7 @@ public struct Grid<T> {
     return Self.transform(x: x, y: y, with: transform)
   }
 
-  public func shortestPath(from start: Coordinate, to destination: Coordinate, isValid: (Coordinate, Element)->Bool) -> [Coordinate] {
+  public func shortestPath(from start: Coordinate, to destination: Coordinate, neighbors: ((Coordinate) -> [Coordinate])? = nil, isValid: (Coordinate, Element)->Bool) -> [Coordinate] {
     var queue = [(0, start)]
     var visited = Set<Coordinate>()
     var parents = [Coordinate: Coordinate]()
@@ -123,12 +123,12 @@ public struct Grid<T> {
         next = parent
       }
 
-      return result
+      return result.reversed()
     }
 
     while !queue.isEmpty {
       let (distance, i) = queue.removeFirst()
-      for j in i.neighbors(limitedBy: width, and: height) where !visited.contains(j) && isValid(j, self[j]) {
+      for j in neighbors?(i) ?? i.neighbors(limitedBy: width, and: height) where !visited.contains(j) && isValid(j, self[j]) {
         visited.insert(j)
         parents[j] = i
 
@@ -136,8 +136,7 @@ public struct Grid<T> {
           return path(for: destination)
         }
 
-        let index = queue.firstIndex(where: { $0.1.manhattan(to: destination) > j.manhattan(to: destination)})
-        queue.insert((distance + 1, j), at: index ?? queue.endIndex)
+        queue.append((distance + 1, j))
       }
     }
 
