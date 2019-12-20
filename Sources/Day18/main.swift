@@ -21,14 +21,6 @@ extension Maze: CustomStringConvertible {
   }
 }
 
-struct Memo: Hashable {
-  let a: Coordinate
-  let b: Coordinate
-  let doors: Set<Character>
-}
-var visibleMemo = [Memo: Set<Character>]()
-var stepsMemo = [Memo: Int?]()
-
 extension Grid where T == Maze {
   var keyPositions: [Character: Coordinate] {
     return self.indices.reduce(into: [:]) {
@@ -39,10 +31,6 @@ extension Grid where T == Maze {
   }
 
   func keysVisible(from: Coordinate, doors: Set<Character>) -> Set<Character> {
-    if let visible = visibleMemo[Memo(a: from, b: from, doors: doors)] {
-      return visible
-    }
-
     var visited = Set<Coordinate>()
     var result = Set<Character>()
 
@@ -66,15 +54,10 @@ extension Grid where T == Maze {
 
     dfs(from: from)
     result.subtract(doors)
-    visibleMemo[Memo(a: from, b: from, doors: doors)] = result
     return result
   }
 
   func shortestPath(from: Coordinate, to: Coordinate, keys: Set<Character>) -> Int? {
-    if let steps = stepsMemo[Memo(a: from, b: to, doors: keys)] {
-      return steps
-    }
-
     let path = self.shortestPath(from: from, to: to) { 
       switch $1 {
       case .wall: return false
@@ -89,57 +72,94 @@ extension Grid where T == Maze {
       }
     }
 
-    guard !path.isEmpty else { 
-      stepsMemo[Memo(a: from, b: to, doors: keys)] = .some(nil)
-      return nil 
+    guard !path.isEmpty else { return nil }
+
+    return path.count
+  }
+
+  func shortestPath(from: Coordinate, to: Coordinate) -> (Int, Set<Character>)? {
+    let path = self.shortestPath(from: from, to: to) {
+      switch $1 {
+        case .wall: return false
+        case .empty, .entrance, .door(_), .key(_): return true
+      }
     }
 
-    stepsMemo[Memo(a: from, b: to, doors: keys)] = path.count
-    return path.count
+    guard !path.isEmpty else { return nil }
+
+    return (path.count, path.reduce(into: Set<Character>()) { 
+      if case .door(let c) = self[$1], let lc = c.lowercased().first {
+        $0.insert(lc)
+      }
+    })
   }
 
   struct Visited: Hashable {
     let position: Coordinate
     let keys: Set<Character>
-    let distance: Int
   }
 
-  func bestKeyOrder(from position: Coordinate) -> ([Character], Int) {
+  func bestKeyOrder(from position: Coordinate) -> Int {
     let positions = self.keyPositions
-    var queue = [(position, [Character](), keysVisible(from: position, doors: Set()), 0)]
-    var bestPath = [] as [Character]
+    var queue = [ (position, Set<Character>(), keysVisible(from: position, doors: Set()), 0) ]
+    queue.reserveCapacity(100)
+
     var bestDistance = Int.max // 4270
     var visited = Set<Visited>()
 
+    let allKeys = Set(positions.keys)
+    let distances = ([position] + positions.values).combinations(length: 2)
+      .reduce(into: [Set<Coordinate>:Int]()) { (result, positions) in
+        if let path = shortestPath(from: positions[0], to: positions[1], keys: allKeys) {
+          result[Set(positions)] = path
+        }
+      }
+
+    let keyVisibility = positions.mapValues { p in
+      return 
+        positions.values
+          .filter { $0 != p }
+          .reduce(into: [(Character, Set<Character>)]()) { 
+            guard case .key(let c) = self[$1] else { fatalError() }
+            if let (_, set) = shortestPath(from: p, to: $1) {
+              $0.append((c, set))
+            }
+          }
+    }
+
     while !queue.isEmpty {
       let (position, keys, visible, distance) = queue.removeFirst()
-      guard visited.insert(Visited(position: position, keys: Set(keys), distance: distance)).inserted else { continue }
+      // If we've been in this position with these keys, we've been here in fewer steps.
+      guard visited.insert(Visited(position: position, keys: keys)).inserted else { continue }
 
       for key in visible { 
         guard let newPosition = positions[key] else { fatalError() }
-        let newKeys = keys.appending(key)
-        let doors = Set(newKeys)
-        guard let step = shortestPath(from: position, to: newPosition, keys: doors) else { continue }
+        let newKeys = keys.union([key])
+        let step = distances[Set([position, newPosition])]!
+
         guard distance + step < bestDistance else { continue }
 
-        if doors.count == positions.count {
+        if newKeys.count == positions.count {
           bestDistance = distance + step
-          queue = queue.filter({ $0.3 < bestDistance })
-          bestPath = newKeys
-          print("FOUND PATH", newKeys, bestDistance, queue.count)
         } else {
-          let visible = keysVisible(from: newPosition, doors: doors)
-          if !visible.isEmpty {
-            let index = queue.firstIndex(where: {
-              $0.1.count < newKeys.count || ($0.1.count == newKeys.count && $0.3 > distance + step)
-            })
-            queue.insert((newPosition, newKeys, visible, distance + step), at: index ?? queue.endIndex)
+          guard let visibility = keyVisibility[key] else { fatalError() }
+
+          let newVisible = 
+            Set(visibility
+              .filter { $0.1.isSubset(of: newKeys) }
+              .map { $0.0 })
+            .subtracting(newKeys)
+
+          if !newVisible.isEmpty {
+            let index = queue.firstIndex { $0.3 > distance + step }
+            queue.insert((newPosition, newKeys, newVisible, distance + step), at: index ?? queue.endIndex)
           }
         }
       }
     }
 
-    return (bestPath, bestDistance)
+    // return (bestPath, bestDistance)
+    return bestDistance
   }
 
   struct Visited4: Hashable {
@@ -148,49 +168,76 @@ extension Grid where T == Maze {
     let position2: Coordinate
     let position3: Coordinate
     let keys: Set<Character>
-    let distance: Int
   }
 
-  func bestKeyOrder(from entrances: [Coordinate]) -> ([Character], Int) {
+  func bestKeyOrder(from entrances: [Coordinate]) -> Int {
     let keyPositions = self.keyPositions
-    var queue = [(entrances, [Character](), entrances.map { keysVisible(from: $0, doors: Set()) }, 0)]
-    var bestPath = [Character]()
+    var queue = [(entrances, Set<Character>(), entrances.map { keysVisible(from: $0, doors: Set()) }, 0)]
     var bestDistance = Int.max // 1982
+    var bestPath = 0
     var visited = Set<Visited4>()
+
+    let allKeys = Set(keyPositions.keys)
+    let distances = (entrances + keyPositions.values).combinations(length: 2)
+      .reduce(into: [Set<Coordinate>:Int]()) { (result, positions) in
+        if let path = shortestPath(from: positions[0], to: positions[1], keys: allKeys) {
+          result[Set(positions)] = path
+        }
+      }
+
+    var pointsOfInterest = Array(keyPositions.values)
+    pointsOfInterest.append(contentsOf: entrances)
+    let keyVisibility = Dictionary(uniqueKeysWithValues: pointsOfInterest.map { (p: Coordinate) -> (Coordinate, [(Character, Set<Character>)]) in
+      return (key: p, value: 
+        keyPositions.values
+          .filter { $0 != p }
+          .reduce(into: [(Character, Set<Character>)]()) { 
+            guard case .key(let c) = self[$1] else { fatalError() }
+            if let (_, set) = shortestPath(from: p, to: $1) {
+              $0.append((c, set))
+            }
+          }
+      )
+    })
 
     while !queue.isEmpty {
       let (positions, keys, visibles, distance) = queue.removeFirst()
-      guard visited.insert(Visited4(position0: positions[0], position1: positions[1], position2: positions[2], position3: positions[3], keys: Set(keys), distance: distance)).inserted else { continue }
+      guard visited.insert(Visited4(position0: positions[0], position1: positions[1], position2: positions[2], position3: positions[3], keys: Set(keys))).inserted else { continue }
 
-      if visited.count % 1000 == 0 {
-        print("VISITED", visited.count, queue.count)
-      }
-
+      // order only matters if positions in other 
       for order in (0..<4).permutations() {
         for (i, position, visible) in zip( order, order.map{ positions[$0] }, order.map{ visibles[$0] } ) {
           for key in visible {
             guard let newPosition = keyPositions[key] else { fatalError() }
-            let newKeys = keys.appending(key)
-            let doors = Set(newKeys)
-            guard let step = shortestPath(from: position, to: newPosition, keys: doors) else { continue }
+            let newKeys = keys.union([key])
+            let step = distances[Set([position, newPosition])]!
+
             guard distance + step < bestDistance else { continue }
 
-            if doors.count == keyPositions.count { 
+            if newKeys.count > bestPath {
+              bestPath = newKeys.count
+              print("bestPath", bestPath, distance + step, queue.count)
+            }
+
+            if newKeys.count == allKeys.count { 
               bestDistance = distance + step
-              queue = queue.filter({ $0.3 < bestDistance })
-              bestPath = newKeys
-              print("FOUND PATH", newKeys, bestDistance, queue.count)
             } else {
               var (positions, visibles) = (positions, visibles)
               positions[i] = newPosition
-              visibles = positions.map { keysVisible(from: $0, doors: doors) }
+              visibles = positions.map {
+                guard let visibility = keyVisibility[$0] else { fatalError() }
+                return Set(visibility
+                  .filter { $0.1.isSubset(of: newKeys) }
+                  .map { $0.0 })
+                .subtracting(newKeys)
+              }
+
               guard !visibles.allSatisfy({ $0.isEmpty }) else { 
                 continue 
               }
 
-              let index = queue.firstIndex(where: {
-                $0.1.count < newKeys.count || ($0.1.count == newKeys.count && $0.3 > distance + step)
-              })
+              guard !visited.contains(Visited4(position0: positions[0], position1: positions[1], position2: positions[2], position3: positions[3], keys: Set(newKeys))) else { continue }
+              let index = queue.firstIndex(where: { ( bestDistance == Int.max && $0.1.count < newKeys.count ) || $0.3 > distance + step })
               queue.insert((positions, newKeys, visibles, distance + step), at: index ?? queue.endIndex)
           }
         }
@@ -198,7 +245,7 @@ extension Grid where T == Maze {
     }
   }
 
-    return (bestPath, bestDistance)
+    return bestDistance
   }
 }
 
@@ -210,27 +257,14 @@ let parser = ({ _ in Maze.wall } <^> char("#")) <|>
              ({ Maze.door($0) } <^> anyOf(keys.uppercased()))
 
 let input = Array(stdin.map { $0 })
-// let input = """
-// #################
-// #i.G..c...e..H.p#
-// ########.########
-// #j.A..b...f..D.o#
-// ########@########
-// #k.E..a...g..B.n#
-// ########.########
-// #l.F..d...h..C.m#
-// #################
-// """.split(separator: "\n")
 let grid = Grid(rectangle: try parse( oneOrMore(parser), input.joined() ), width: input[0].count, height: input.count)
+
 if CommandLine.arguments[1] == "1" {
   let entrance = grid.indices.first { if case .entrance = grid[$0] { return true } else { return false }}!
   print(grid.keysVisible(from: entrance, doors: Set()))
   print("part1", grid.bestKeyOrder(from: entrance))
 } else if CommandLine.arguments[1] == "2" {
   let entrances = grid.indices.filter({ if case .entrance = grid[$0] { return true } else { return false }})
-  print(grid.keyPositions, grid.keyPositions.count)
-  print(Array(entrances.indices.permutations()))
-  print(entrances)
   print(entrances.map { grid.keysVisible(from: $0, doors: Set()) })
   print("part2", grid.bestKeyOrder(from: entrances))
 }
