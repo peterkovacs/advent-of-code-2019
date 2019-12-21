@@ -23,6 +23,14 @@ public struct CPU {
   public var isBlocked: Bool { state == .blocked }
   public var isHalted: Bool { state == .halted }
 
+  public var ascii: String {
+    return String(output.prefix(while: { $0 < 256 }).map { Character(Unicode.Scalar($0)!) })
+  }
+
+  public mutating func ascii(input str: String) {
+    self.input.append(contentsOf: str.map { Int($0.unicodeScalars.first!.value) })
+  }
+
   public mutating func exec(output: ((Int) -> ())? = nil) {
     while true {
       switch decode( op: program[pc] ) {
