@@ -35,9 +35,11 @@ let package = Package(name: "AdventOfCode2019",
                       ],
                       dependencies: [
                         .package(url: "https://github.com/peterkovacs/FootlessParser.git", .branch( "inout-remainder" )),
+                        .package(url: "https://github.com/std-swift/ModularArithmetic.git", .branch( "master" )),
+                        .package(url: "https://github.com/attaswift/BigInt.git", .branch( "master" )),
                       ],
                       targets: [
-                        .target(name: "AdventOfCode", dependencies: [ "FootlessParser" ]),
+                        .target(name: "AdventOfCode", dependencies: [ "FootlessParser", "ModularArithmetic", "BigInt" ]),
                         .target(name: "Day01", dependencies: [ "AdventOfCode" ]),
                         .target(name: "Day02", dependencies: [ "AdventOfCode" ]),
                         .target(name: "Day03", dependencies: [ "AdventOfCode" ]),

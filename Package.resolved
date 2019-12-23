@@ -2,11 +2,29 @@
   "object": {
     "pins": [
       {
+        "package": "BigInt",
+        "repositoryURL": "https://github.com/attaswift/BigInt.git",
+        "state": {
+          "branch": "master",
+          "revision": "7bd99f7ebb8886cd3a0dfac26fea9c1049027a08",
+          "version": null
+        }
+      },
+      {
         "package": "FootlessParser",
         "repositoryURL": "https://github.com/peterkovacs/FootlessParser.git",
         "state": {
           "branch": "inout-remainder",
           "revision": "1997256ca6db85760feb3a3811826ba7b4d52c42",
+          "version": null
+        }
+      },
+      {
+        "package": "ModularArithmetic",
+        "repositoryURL": "https://github.com/std-swift/ModularArithmetic.git",
+        "state": {
+          "branch": "master",
+          "revision": "42854c838ea4f3704c1c5c3e30b08db799d20ece",
           "version": null
         }
       }

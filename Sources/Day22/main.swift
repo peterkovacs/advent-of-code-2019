@@ -6,8 +6,8 @@ import BigInt
 
 public enum Command {
   case reverse
-  case deal(Int)
-  case cut(Int)
+  case deal(BigInt)
+  case cut(BigInt)
 }
 
 extension Array where Element == Int {
@@ -17,13 +17,15 @@ extension Array where Element == Int {
       return Array(reversed())
     case .deal(let d):
       let mod = count
+      let d = Int(d)
       return zip(indices, stride(from: startIndex, to: endIndex * d, by: d)).reduce(into: self) {
         $0[$1.1 % mod] = self[$1.0]
       }
     case .cut(let d) where d < 0:
-      let d = d + count
+      let d = Int(d) + count
       return Array(self[d...] + self[..<d])
     case .cut(let d) where d >= 0:
+      let d = Int(d)
       return Array(self[d...] + self[..<d])
     default:
       fatalError("swift too dum to know i've covered every possibility.")
@@ -31,13 +33,22 @@ extension Array where Element == Int {
   }
 }
 
-struct Key: Hashable {
-  let n, c: Int
-}
-var memo = [Key: Int]()
+extension BigInt: ModularOperations {
+  public func adding(_ other: BigInt, modulo: BigInt) -> BigInt {
+    return (self + other).modulo(modulo)
+  }
 
-extension Int {
-  func apply(commands: [Command], length: Int) -> Int {
+  public func subtracting(_ other: BigInt, modulo: BigInt) -> BigInt {
+    return (self - other).modulo(modulo)
+  }
+
+  public func multiplying(_ other: BigInt, modulo: BigInt) -> BigInt {
+    return (self * other).modulo(modulo)
+  }
+}
+
+extension BigInt {
+  func apply(commands: [Command], length: BigInt) -> BigInt {
     precondition((0..<length).contains(self))
 
     var next = self
@@ -68,8 +79,8 @@ extension Int {
 
 let parser: Parser<Character, Command> = 
     ({ _ in Command.reverse } <^> string("deal into new stack")) <|>
-  ({ Command.deal(Int($0)!) } <^> (string("deal with increment ") *> oneOrMore(digit))) <|>
-   ({ Command.cut(Int($0)!) } <^> (string("cut ") *> oneOrMore(char("-") <|> digit)))
+  ({ Command.deal(BigInt($0)!) } <^> (string("deal with increment ") *> oneOrMore(digit))) <|>
+   ({ Command.cut(BigInt($0)!) } <^> (string("cut ") *> oneOrMore(char("-") <|> digit)))
 
 let input = try parse(oneOrMore(parser <* optional(char("\n"))), stdin.joined(separator: "\n"))
 let result = input.reduce(Array(0..<10007)) { $0.apply(command: $1) }
@@ -87,29 +98,13 @@ print("part1", result.firstIndex(of: 2019)!)
 // print( "(a * 107918735430368 + c) mod m = ", (107918735430368.multiplying(42907977848598, modulo: 119315717514047).adding(57014396460530, modulo: 119315717514047) ))
 // print( "(a * 9694310388107 + c) mod m = ", (9694310388107.multiplying(42907977848598, modulo: 119315717514047).adding(57014396460530, modulo: 119315717514047) ))
 
-// let start = Date()
-// let a = 42907977848598 
-// let c = 57014396460530 
-// let seed = 2020 
-// let aN = a.exponentiating(by: n, modulo: length)
-// let part2 = (seed.multiplying(aN, modulo: length).adding(c.multiplying((aN - 1) / (a - 1), modulo: length), modulo: length))
-// print(a, n, aN, seed.multiplying(aN, modulo: length), (aN - 1) / (a - 1), c.multiplying((aN - 1) / (a-1), modulo: length))
-// print("part2", part2, Date().timeIntervalSince(start))
-
-let length = 119315717514047 
-let n      = 101741582076661
-var x      = 2020
+let length = BigInt(119315717514047) 
+let n      = BigInt(101741582076661)
+var x      = BigInt(2020)
 var y      = x.apply(commands: input, length: length)
 var z      = y.apply(commands: input, length: length)
-let a      = (y-z).multiplying( (x - y + length).inverse(modulo: length)!, modulo: length)
-let b      = (y-a).multiplying( x, modulo: length )
+let a      = ((y - z) * (x - y + length).inverse(modulo: length)!).modulo(length)
+let b      = (y - a * x).modulo(length)
 
-print( x, y, z, a, b)
-// let answer = (power(A, n, D) * X + (power(A, n, D) - 1) * primeModInverse(A - 1, D) * B) % D
-
-let i = BigInt(a.exponentiating(by: n, modulo: length)) * BigInt(x)
-let j = (BigInt(a.exponentiating(by: n, modulo: length) - 1))
-let k = BigInt((a-1).inverse(modulo: length)!)
-let part2: BigInt = ( i + j * k * BigInt(b)) % BigInt(length)
-
-print( "part2", part2)
+let answer = (a.exponentiating(by: n, modulo: length) * x + (a.exponentiating(by: n, modulo: length) - 1) * (a-1).inverse(modulo: length)! * b).modulo(length)
+print( "part2", answer)
