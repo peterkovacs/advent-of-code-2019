@@ -87,12 +87,13 @@ let result = input.reduce(Array(0..<10007)) { $0.apply(command: $1) }
 print("part1", result.firstIndex(of: 2019)!)
 
 // https://en.wikipedia.org/wiki/Linear_congruential_generator#c_≠_0
-// X_{n+1}=(a X_{n} + c) mod {m}
+// X_{n+1}=(a X_{n} + b) mod {m}
 // 107918735430368 = (a * 2020 + c) mod 119315717514047
-// 9694310388107 = (a * 107918735430368 + c) mod 119315717514047
-// a = 42907977848598, c = 57014396460530
+// 9694310388107 = (a * 107918735430368 + b) mod 119315717514047
+// a = 42907977848598, b = 57014396460530
 // Nth = (a^n*2020 + c*(a^n - 1)/(a - 1)) mod 119315717514047
-// Nth = (a^n*2020 + c*(a^n - 1)/(a - 1)) mod m; a = 42907977848598; n = 101741582076661; c = 57014396460530; m = 119315717514047
+// Nth = (a^n*2020 + c*(a^n - 1)/(a - 1)) mod m
+// Nth = (a^n*2020 + c*(a^n - 1)*(a - 1).inverse(m)) mod m
 
 // print( "(a * 2020 + c) mod m = ", (2020.multiplying(42907977848598, modulo: 119315717514047).adding(57014396460530, modulo: 119315717514047) ))
 // print( "(a * 107918735430368 + c) mod m = ", (107918735430368.multiplying(42907977848598, modulo: 119315717514047).adding(57014396460530, modulo: 119315717514047) ))
@@ -106,5 +107,8 @@ var z      = y.apply(commands: input, length: length)
 let a      = ((y - z) * (x - y + length).inverse(modulo: length)!).modulo(length)
 let b      = (y - a * x).modulo(length)
 
-let answer = (a.exponentiating(by: n, modulo: length) * x + (a.exponentiating(by: n, modulo: length) - 1) * (a-1).inverse(modulo: length)! * b).modulo(length)
-print( "part2", answer)
+// a^(n - 1) % n = 1, if n is prime and co-prime with a.
+// inverse(a) = a^(n-2) mod n
+assert(y == (x*a + b).modulo(length))
+assert(z == (x*a*a + b*(a*a - 1)/(a - 1)).modulo(length))
+print("part2", (x*a.power(n, modulus: length) + b*(a.power(n, modulus: length) - 1)*(a - 1).inverse(length)!).modulo(length))
