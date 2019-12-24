@@ -107,36 +107,42 @@ public struct Grid<T> {
   }
 
   public func shortestPath(from start: Coordinate, to destination: Coordinate, neighbors: ((Coordinate) -> [Coordinate])? = nil, isValid: (Coordinate, Element)->Bool) -> [Coordinate] {
-    var queue = [(0, start)]
-    var visited = Set<Coordinate>()
-    var parents = [Coordinate: Coordinate]()
-    var result = [Coordinate]()
-    var best = Int.max
+    var dist = [start: 0]
+    var nodes = Set([start])
+    var visited = Set([start])
+    var prev = [Coordinate:Coordinate]()
 
     func path(for destination: Coordinate) -> [Coordinate] {
-      var result = [Coordinate]()
-      var next = destination
+      var s = [Coordinate]()
+      var u = destination
 
-      while next != start {
-        result.append(next)
-        guard let parent = parents[next] else { fatalError() }
-        next = parent
+      while u != start {
+        s.append(u)
+        u = prev[u]!
       }
 
-      return result.reversed()
+      return s.reversed()
     }
 
-    while !queue.isEmpty {
-      let (distance, i) = queue.removeFirst()
-      for j in neighbors?(i) ?? i.neighbors(limitedBy: width, and: height) where !visited.contains(j) && isValid(j, self[j]) {
-        visited.insert(j)
-        parents[j] = i
+    while !nodes.isEmpty {
+      guard let u = nodes.min(by: { dist[$0, default: Int.max] < dist[$1, default: Int.max]}) else { fatalError() }
 
-        if j == destination {
-          return path(for: destination)
+      if destination == u {
+        // Calculate path.
+        return path(for: destination)
+      }
+
+      nodes.remove(u)
+      let distance = dist[u]!
+
+      for v in neighbors?(u) ?? u.neighbors(limitedBy: width, and: height) where visited.insert(v).inserted && isValid(v, self[v]) {
+        nodes.insert(v)
+
+        let alt = distance + 1
+        if alt < dist[v, default: Int.max] {
+          dist[v] = alt
+          prev[v] = u
         }
-
-        queue.append((distance + 1, j))
       }
     }
 
@@ -196,10 +202,16 @@ extension Grid: Sequence {
   }
 }
 
-extension Grid where Grid.Element: Equatable {
+extension Grid: Equatable where Grid.Element: Equatable {
   public static func ==(lhs: Grid, rhs: Grid) -> Bool {
     guard lhs.startIndex == rhs.startIndex, lhs.endIndex == rhs.endIndex else { return false }
     return lhs.elementsEqual( rhs )
+  }
+}
+
+extension Grid: Hashable where Element: Hashable {
+  public func hash(into hasher: inout Hasher) {
+    self.forEach({ hasher.combine($0) })
   }
 }
 
