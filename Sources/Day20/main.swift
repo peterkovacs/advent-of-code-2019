@@ -98,43 +98,49 @@ extension Grid where Element == Maze {
     let level: Int
   }
 
-  func shortestPath(from start: Coordinate, to end: Coordinate) -> Int {
-    var queue = [(0, start, 0)]
-    var visited = Set<Key>()
-    var parents = [Coordinate: Coordinate]()
+  func shortestPath(from start: Coordinate, to destination: Coordinate) -> Int {
+    var dist = [Key(pos: start, level: 0): 0]
+    var nodes = Set([Key(pos: start, level: 0)])
+    var visited = Set([Key(pos: start, level: 0)])
 
-    while !queue.isEmpty {
-      let (distance, i, level) = queue.removeFirst()
+    while !nodes.isEmpty {
+      guard let u = nodes.min(by: { dist[$0, default: Int.max] < dist[$1, default: Int.max]}) else { fatalError() }
+      let distance = dist[u]!
 
-      let neighbors: [(Coordinate,Int)] = 
-        i.neighbors(limitedBy: self.width, and: self.height)
+      if destination == u.pos, u.level == 0 {
+        // Calculate path.
+        return distance
+      }
+
+      nodes.remove(u)
+
+      let neighbors: [Key] = 
+        u.pos.neighbors(limitedBy: self.width, and: self.height)
          .compactMap {
-           if $0 == end, level > 0 { return nil }
+           if $0 == destination, u.level > 0 { return nil }
 
            switch self[$0] {
            case .outer(let c): 
-            return level > 0 ? (c, -1) : nil
-           case .inner(let c): return (c, 1)
-           case .path: return ($0, 0)
+            return u.level > 0 ? Key(pos: c, level: u.level - 1) : nil
+           case .inner(let c): return u.level < 30 ? Key(pos: c, level: u.level + 1) : nil
+           case .path: return Key(pos: $0, level: u.level)
            default: return nil
            }
          }
 
-      for (j, levelStep) in neighbors {
-        let newLevel = level + levelStep
-        guard visited.insert(Key(pos: j, level: newLevel)).inserted else { continue }
-        parents[j] = i
+      for v in neighbors where visited.insert(v).inserted {
+        nodes.insert(v)
 
-        if j == end, newLevel == 0 {
-          return distance + 1
+        let alt = distance + 1
+        if alt < dist[v, default: Int.max] {
+          dist[v] = alt
         }
-
-        queue.append((distance + 1, j, newLevel))
       }
     }
 
     return Int.max
   }
+
 }
 
 let parser = ({ _ in Maze.wall } <^> anyOf(" #")) <|> 
