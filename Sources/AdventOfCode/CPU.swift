@@ -7,6 +7,15 @@ public struct CPU {
     case halted
   }
 
+  public static func load(_ url: URL) -> CPU {
+    guard let data = try? Data(contentsOf: url) else { fatalError("Unable to read \(url)") }
+    guard let str = String(data: data, encoding: .utf8) else { fatalError("Input not valid utf8") }
+    return CPU(program: str.filter({ $0 != "\n" }).split(separator: ",").map { 
+      guard let i = Int($0) else { fatalError("Not an int: \(String(describing: $0))") }
+      return i
+    })
+  }
+
   private var pc = 0
   public var program: [Int]
 
